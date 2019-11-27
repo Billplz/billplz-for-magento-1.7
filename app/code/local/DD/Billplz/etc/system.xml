@@ -29,13 +29,29 @@
                             <show_in_store>1</show_in_store>
                         </title>
                         <secret_key>
-                            <label>Secret Key</label>
+                            <label>API Secret Key</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>59</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </secret_key>
+                        <collection_id>
+                            <label>Collection ID</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>59</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </collection_id>
+                        <x_signature>
+                            <label>X Signature</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>59</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </x_signature>
                         <!--<order_status translate="label">-->
                             <!--<label>New Order Status</label>-->
                             <!--<frontend_type>select</frontend_type>-->
@@ -66,7 +82,7 @@
                                 <allowspecific>1</allowspecific>
                             </depends>
                         </specificcountry>-->
-                        <send_sms translate="label">
+<!--                         <send_sms translate="label">
                             <label>Send SMS</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
@@ -74,7 +90,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                        </send_sms>
+                        </send_sms> -->
                         <test_mode translate="label">
                             <label>Test Mode</label>
                             <frontend_type>select</frontend_type>

@@ -80,4 +80,14 @@ class DD_Billplz_Model_Payment extends Mage_Payment_Model_Method_Abstract
     {
         return $this->getConfigData('secret_key');
     }
+
+    public function getCollectionId()
+    {
+        return $this->getConfigData('collection_id');
+    }
+
+    public function getXSignature()
+    {
+        return $this->getConfigData('x_signature');
+    }
 }

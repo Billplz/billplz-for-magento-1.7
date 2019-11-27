@@ -3,7 +3,7 @@
 class DD_Billplz_Model_Billplz
 {
     const API_BASE_URL = 'https://www.billplz.com/api/v3/';
-    const STAGING_API_BASE_URL = 'https://billplz-staging.herokuapp.com/api/v3/';
+    const STAGING_API_BASE_URL = 'https://www.billplz-sandbox.com/api/v3/';
 
     /**
      * @var bool
@@ -27,7 +27,7 @@ class DD_Billplz_Model_Billplz
     {
         $this->_helper = Mage::helper('billplz');
         $this->_payment = Mage::getModel('billplz/payment');
-        $this->_testMode = (bool)Mage::getStoreConfig('payment/billplz/test_mode');
+        $this->_testMode = (bool) Mage::getStoreConfig('payment/billplz/test_mode');
     }
 
     /**
@@ -61,16 +61,6 @@ class DD_Billplz_Model_Billplz
      */
     public function createBill(array $payload)
     {
-        if (!isset($payload['collection_id']) || empty($payload['collection_id'])) {
-            $collection = $this->createCollection("#{$payload['order_id']}");
-
-            if (!$collection) {
-                return false;
-            }
-
-            $payload['collection_id'] = $collection->id;
-        }
-
         try {
 
             $client = $this->getClient("bills");
@@ -79,14 +69,14 @@ class DD_Billplz_Model_Billplz
 
             $response = $client->setParameterPost([
                 'collection_id' => $payload['collection_id'],
-                'email'         => $payload['email'],
-                'mobile'        => $this->_payment->getConfigData('send_sms') ? $payload['mobile'] : null,
-                'name'          => $payload['name'],
-                'amount'        => $payload['amount'] * 100,
-                'description'   => "Bill for #{$payload['order_id']}",
-                'callback_url'  => $this->_helper->getCallbackUrl(),
-                'redirect_url'  => $this->_helper->getRedirectUrl(),
-                'deliver'       => true,
+                'email' => $payload['email'],
+                'name' => $payload['name'],
+                'amount' => $payload['amount'] * 100,
+                'description' => "Bill for #{$payload['order_id']}",
+                'collection_id' => $this->_payment->getCollectionId(),
+                'callback_url' => $this->_helper->getCallbackUrl(),
+                'redirect_url' => $this->_helper->getRedirectUrl(),
+                'deliver' => false,
             ])->request(Zend_Http_Client::POST);
 
             return json_decode($response->getBody());
@@ -139,11 +129,16 @@ class DD_Billplz_Model_Billplz
 
         $client = new Zend_Http_Client($uri, [
             'maxredirects' => 0,
-            'timeout'      => 10,
+            'timeout' => 10,
         ]);
 
         $client->setAuth($this->_payment->getSecretKey());
 
         return $client;
+    }
+
+    public function getXSignature()
+    {
+        return $this->_payment->getXSignature();
     }
 }

@@ -17,11 +17,10 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
 
         // create billplz bill before redirect to billplz
         $bill = $billplz->createBill([
-            'order_id'    => $order->getIncrementId(),
-            'name'        => $order->getBillingAddress()->getName(),
-            'email'       => $order->getBillingAddress()->getEmail(),
-            'mobile'      => $order->getBillingAddress()->getTelephone(),
-            'amount'      => $order->getBaseGrandTotal(),
+            'order_id' => $order->getIncrementId(),
+            'name' => $order->getBillingAddress()->getName(),
+            'email' => $order->getBillingAddress()->getEmail(),
+            'amount' => $order->getBaseGrandTotal(),
             'description' => "Bill for order #{$order->getIncrementId()}",
         ]);
 
@@ -39,6 +38,7 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
 
             $this->_redirectUrl($bill->url);
         } else {
+            Mage::log("Failed to create bill. " . print_r($bill, true), LOG_DEBUG, 'billplz.log');
             $this->norouteAction();
         }
     }
@@ -55,22 +55,26 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
         /** @var DD_Billplz_Model_Billplz $billplz */
         $billplz = $this->getBillplz();
 
-        $bill_id = $this->getRequest()->getPost('id');
-        $bill = $billplz->getBill($bill_id);
+        $params = $this->getRequest()->getPost();
+        $source_string = $this->xSignatureSourceString($params);
+        $xsignature_key = $billplz->getXSignature();
+        $xsignature = $params['x_signature'];
+        $equal = hash_equals(hash_hmac('sha256', $source_string, $xsignature_key), $xsignature);
+
+        if (!$equal) {
+            http_response_code(403);
+            exit;
+        }
+
+        $bill_id = $params['id'];
 
         Mage::log("Received callback for bill: {$bill_id}", LOG_DEBUG, 'billplz.log');
 
-        // check bill status
-        if ($bill) {
-            /** @var Mage_Sales_Model_Order $order */
-            $order = Mage::getModel('sales/order')->load($bill->id, 'billplz_bill_id');
-            // If bill is paid and order status is pending payment, create invoice for order
-            if ($bill->paid && $order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
-                $this->_createInvoice($order);
-            }
-        } else {
-            // show error 404 if bill is not valid
-            $this->norouteAction();
+        /** @var Mage_Sales_Model_Order $order */
+        $order = Mage::getModel('sales/order')->load($bill_id, 'billplz_bill_id');
+        // If bill is paid and order status is pending payment, create invoice for order
+        if ($params['paid'] == 'true' && $order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
+            $this->_createInvoice($order, $bill_id);
         }
 
     }
@@ -80,30 +84,37 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
      */
     public function completeAction()
     {
-        $params = $this->getRequest()->get('billplz');
-        $bill_id = $params['id'];
-
-        Mage::log("Complete: {$bill_id}", LOG_DEBUG, 'billplz.log');
+        $params = $_GET;
 
         /** @var DD_Billplz_Model_Billplz $billplz */
         $billplz = $this->getBillplz();
 
-        $bill = $billplz->getBill($bill_id);
-        // check bill status
-        if ($bill) {
-            /** @var Mage_Sales_Model_Order $order */
-            $order = Mage::getModel('sales/order')->load($bill->id, 'billplz_bill_id');
-            if ($bill->paid && $order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
-                $this->_createInvoice($order);
+        $source_string = $this->xSignatureSourceString($params);
+        $xsignature_key = $billplz->getXSignature();
+        $xsignature = $params['billplz']['x_signature'];
+        $equal = hash_equals(hash_hmac('sha256', $source_string, $xsignature_key), $xsignature);
 
-                $this->_redirect('checkout/onepage/success');
-            } else {
-                $this->_redirect('checkout/onepage/failure');
-            }
-        } else {
-            // show error 404 if bill is not valid
-            $this->norouteAction();
+        if (!$equal) {
+            http_response_code(403);
+            exit('Check X Signature Key');
         }
+
+        $bill_id = $params['billplz']['id'];
+
+        Mage::log("Complete: {$bill_id}", LOG_DEBUG, 'billplz.log');
+
+        /** @var Mage_Sales_Model_Order $order */
+        $order = Mage::getModel('sales/order')->load($bill_id, 'billplz_bill_id');
+        if ($params['billplz']['paid'] == 'true') {
+            if ($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
+                $this->_createInvoice($order, $bill_id);
+            }
+
+            $this->_redirect('checkout/onepage/success');
+        } else {
+            $this->_redirect('checkout/onepage/failure');
+        }
+
     }
 
     /**
@@ -122,7 +133,7 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
         return Mage::getModel('billplz/billplz');
     }
 
-    private function _createInvoice(Mage_Sales_Model_Order $order)
+    private function _createInvoice(Mage_Sales_Model_Order $order, $bill_id)
     {
         if (!$order->canInvoice()) {
             return;
@@ -136,7 +147,33 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
             ->addObject($invoice->getOrder())
             ->save();
 
-        $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true, $this->__('Order invoiced'), true);
+        $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true, "Order invoiced; Bill ID: {$bill_id}", true);
         $order->save();
+    }
+
+    private function xSignatureSourceString($data, $prefix = '')
+    {
+        uksort($data, function ($a, $b) {
+            $a_len = strlen($a);
+            $b_len = strlen($b);
+            $result = strncasecmp($a, $b, min($a_len, $b_len));
+            if ($result === 0) {
+                $result = $b_len - $a_len;
+            }
+            return $result;
+        });
+        $processed = [];
+        foreach ($data as $key => $value) {
+            if ($key === 'x_signature') {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $processed[] = $this->xSignatureSourceString($value, $key);
+            } else {
+                $processed[] = $prefix . $key . $value;
+            }
+        }
+        return implode('|', $processed);
     }
 }

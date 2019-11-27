@@ -5,13 +5,18 @@ $installer = $this;
 
 $installer->startSetup();
 
-$installer->getConnection()
-    ->addColumn($installer->getTable('sales/order'), 'billplz_bill_id', [
-        'type'     => Varien_Db_Ddl_Table::TYPE_TEXT,
-        'length'   => 20,
-        'nullable' => true,
-        'default'  => null,
-        'comment'  => 'Billplz Bill ID',
-    ]);
+$tableName = $installer->getTable('sales/order');
+
+$table = $installer->getConnection();
+
+$table->addColumn($tableName, 'billplz_bill_id', [
+    'type' => Varien_Db_Ddl_Table::TYPE_TEXT,
+    'length' => 20,
+    'nullable' => true,
+    'default' => null,
+    'comment' => 'Billplz Bill ID',
+]);
+
+$table->addIndex($tableName, 'billplz_unique_index', 'billplz_bill_id', Varien_Db_Adapter_Interface::INDEX_TYPE_UNIQUE);
 
 $installer->endSetup();
