@@ -1,16 +1,23 @@
-# Billplz Magento Extension
+# Billplz for Magento 1.9.x
+
+Accept payment using Billplz for Magento 1.9.x
 
 **Version: 1.0.0**
 
-The extension is using [Billplz](https://www.billplz.com/) API v3. It has been tested with Magento 1.9.x.
+The extension is using [Billplz](https://www.billplz.com/) API v3.
 
 #### Installation
 
-1. Copy `app` folder to magento root directory
-2. Clear Magento cache
-3. Enable it in `System > Configuration > Sales > Payment Methods > Billplz`
-4. Get Billplz secret key and update in the config
+1. Copy `app` folder to magento root directory.
+1. Clear Magento cache.
+1. Run compilation process if neccessary.
+1. Enable it in `System > Configuration > Sales > Payment Methods > Billplz`.
+1. Get Billplz secret key and update in the config.
 
 #### Test Mode
 
-This extension also include a testing mode where you can do a test run on Billplz staging environment. To use staging mode, select Test Mode to `Yes` and create an account in [Billplz staging](https://billplz-staging.herokuapp.com) environment. 
+This extension also include a testing mode where you can do a test run on Billplz sandbox environment. To use sandbox mode, select Test Mode to `Yes` and create an account in [Billplz Sandbox](https://www.billplz-sandbox.com) environment. 
+
+#### Other
+
+Facebook: [Billplz Dev Jam](https://www.facebook.com/groups/billplzdevjam/)
