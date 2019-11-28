@@ -13,7 +13,10 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
         $billplz = $this->getBillplz();
 
         // retrieve order
-        $order = $paymentMethod->getCheckout()->getLastRealOrder();
+        /* @var $order Mage_Sales_Model_Order */
+        $session = $this->_getCheckout();
+        $incrementId = $session->getLastRealOrderId();
+        $order = Mage::getModel('sales/order')->loadByIncrementId($incrementId);
 
         // create billplz bill before redirect to billplz
         $bill = $billplz->createBill([
@@ -115,6 +118,16 @@ class DD_Billplz_IndexController extends Mage_Core_Controller_Front_Action
             $this->_redirect('checkout/onepage/failure');
         }
 
+    }
+
+    /**
+     * Get frontend checkout session object
+     *
+     * @return Mage_Checkout_Model_Session
+     */
+    protected function _getCheckout()
+    {
+        return Mage::getSingleton('checkout/session');
     }
 
     /**

@@ -1,6 +1,6 @@
-# Billplz for Magento 1.9.x
+# Billplz for Magento 1.7.x
 
-Accept payment using Billplz for Magento 1.9.x
+Accept payment using Billplz for Magento 1.7.x
 
 **Version: 1.0.0**
 
